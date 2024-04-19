@@ -1,0 +1,227 @@
+﻿@page "/reserveTable"
+@using Project.Components.Pages.Codes
+
+<h1>Reserve Table</h1>
+
+<style>
+    
+    body {
+        font-family: Arial, sans-serif;
+        background-color: lightblue;
+        margin: 0;
+        padding: 0;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    }
+
+    .container, .containers {
+        background-color: lightyellow;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+        width: 450px;
+    }
+
+    .containers {
+        width: 325px;
+    }
+
+    .available-container {
+        background-color: #C2F5CF;
+    }
+
+    .reserved-container {
+        background-color: #F5C2C3;
+    }
+
+    h2 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    input[type="text"], input[type="number"], input[type="time"]{
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-sizing: border-box;
+    }
+
+    button {
+        background-color: #907bff;
+        color: #fff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 40%;
+        margin: 0 auto; 
+        display: block;
+    }
+
+    .flex 
+    {
+        display:flex;
+        flex-direction:row;
+        gap:50px;
+        margin-top:35px;
+    }
+
+    button:hover {
+        background-color: #0056b3;
+    }
+
+    .note {
+        color: #888;
+        font-style: italic;
+    }
+
+    .available-msg {
+        color:green;
+    }
+
+    .not-available-msg {
+        color: red;
+    }
+
+</style>
+
+<div class="flex">
+
+    <div>
+        <div class="container">
+            <h2>Make a Reservation</h2>
+            <form id="reservationForm" @onsubmit="Reserve">
+                <label for="firstName">First Name:</label>
+                <input type="text" id="firstName" name="firstName" @bind="customerFirstName" required>
+
+                <label for="lastName">Last Name:</label>
+                <input type="text" id="lastName" name="lastName" @bind="customerLastName" required>
+
+                <label for="tableNumber">Table Number:</label>
+                <input type="number" id="tableNumber" name="tableNumber" @bind="TableNumber" required min="1" max="4">
+
+                <label for="startTime">Start Time:</label>
+                <input type="number" id="startTime" name="startTime" @bind="StartTime" required>
+
+                <p class="note">Just write the hour for the time you are booking the table (e.g., for 1 pm, enter "13"). Each reservation is for one hour.</p>
+
+                @if (showMsg == true)
+                {
+                    @if (availability == false)
+                    {
+                        <p class="not-available-msg">Slot is already booked for someone else.</p>
+                    }
+
+                    else
+                    {
+                        <p class="available-msg">Booking confirmed for @customerFirstName @customerLastName from @StartTime:00 to @(StartTime + 1):00</p>
+                    }
+                }
+
+                <button type="submit">Make Reservation</button>
+
+            </form>
+        </div>
+
+        <div class=" container ">
+            <h2>Cancel Reservation</h2>
+            <form id="reservationForm" @onsubmit="CancelReservation">
+
+                <label for="tableNumber">Table Number:</label>
+                <input type="number" id="tableNumber" name="tableNumber" @bind="TableNumber" required min="1" max="4">
+
+                <label for="startTime">Start Time:</label>
+                <input type="number" id="startTime" name="startTime" @bind="StartTime" required>
+
+                <p class="note">Just write the hour for the time you are booking the table (e.g., for 1 pm, enter "13").</p>
+
+                <button type="submit">Cancel Reservation</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="containers available-container">
+        <h2>Available Slots</h2>
+        <ul>
+            @foreach (var slot in tableSlot.TableSlots)
+            {
+                if (slot.IsAvailable == true)
+                {
+                    <li>
+                        Table: @slot.TableNumber, From: @slot.StartTime:00 - @slot.EndTime:00
+                    </li>
+                }
+            }
+        </ul>
+    </div>
+
+    <div class="containers reserved-container">
+        <h2>Reserved Slots</h2>
+        <ul>
+            @foreach (var slot in tableSlot.TableSlots)
+            {
+                if (slot.IsAvailable == false)
+                {
+                    <li>
+                        Table: @slot.TableNumber, From: @slot.StartTime:00 - @slot.EndTime:00, Reserved for @slot.CustomerFirstName @slot.CustomerLastName
+                    </li>
+                }
+            }
+        </ul>
+    </div>
+</div>
+
+
+@code {
+    // Fields
+    int TableNumber;
+    int StartTime;
+    string customerFirstName;
+    string customerLastName;
+    bool availability;
+    bool showMsg = false;
+
+    // Instance of TableSlot class
+    TableSlot tableSlot = new TableSlot();
+
+    // Method to reserve a table
+    public void Reserve()
+    {
+        // Make reservation
+        TableSlot slot = tableSlot.MakeReservation(customerFirstName, customerLastName, TableNumber, StartTime);
+
+        // Update availability and show message
+        if (slot == null)
+        {
+            availability = false;
+        }
+        else
+        {
+            availability = true;
+        }
+        showMsg = true;
+    }
+
+    // Method to cancel reservation
+    public void CancelReservation()
+    {
+        // Cancel reservation
+        tableSlot.CancelReservation(TableNumber, StartTime);
+        // Hide message
+        showMsg = false;
+    }
+
+    // Instance of Item class
+    Item item = new Item();
+}
+

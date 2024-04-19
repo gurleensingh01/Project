@@ -1,0 +1,142 @@
+﻿@page "/inventory"
+@using Project.Components.Pages.Codes
+
+<style>
+
+    body {
+        font-family: Arial, sans-serif;
+        background-color: lightblue;
+        margin: 0;
+        padding: 0;
+        font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    }
+
+    .container {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: lightyellow;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+        text-align: center;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+    }
+
+    label {
+        margin-bottom: 5px;
+    }
+
+    select,
+    input[type="number"],
+    button {
+        margin-bottom: 15px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-sizing: border-box;
+    }
+
+    button {
+        background-color: #907bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: #0056b3;
+    }
+
+</style>
+
+<div class="container">
+    <h1>Add to Inventory</h1>
+    <br />
+    <form id="orderForm" @onsubmit="AddItem">
+
+        <label for="item-type">Select Item Type:</label>
+        <select id="item-type" name="item-type" @bind="type">
+            @{
+                var uniqueType = item.Items.Select(i => i.Type).Distinct();
+                <option value="all">All</option>
+                foreach (var type in uniqueType)
+                {
+                    <option value="@type">@type</option>
+                }
+            }
+        </select>
+
+
+        <label for="item">Select Item:</label>
+        <select id="item" name="item" @bind="itemDescription">
+            @{
+                var sortedItem = item.Items.OrderBy(i => i.Description);
+                <option value="">--Select--</option>
+                if (type == "all")
+                {
+                    foreach (var item in sortedItem)
+                    {
+                        <option value="@item.Description">@item.Description</option>
+                    }
+                }
+
+                else
+                {
+                    foreach (var item in sortedItem)
+                    {
+                        if (item.Type == type)
+                        {
+                            <option value="@item.Description">@item.Description</option>
+                        }
+                    }
+                }
+            }
+        </select>
+
+        <div>
+            @if (itemDescription != "")
+            {
+                foreach (var item in item.Items)
+                {
+                    if (item.Description == itemDescription)
+                    {
+                        <p>Available Quantity: @item.Quantity</p>
+                        availableQuantity = item.Quantity;
+                    }
+                }
+            }
+        </div>
+
+        <label for="quantity">Quantity:</label>
+        <input type="number" id="quantity" name="quantity" min="1" required @bind="quantity">
+
+        <button type="submit">Add to Inventory</button>
+    </form>
+</div>
+
+
+@code {
+    // Fields
+    string type = "";
+    string itemDescription;
+    int quantity = 1;
+    int availableQuantity;
+
+    // Instance of Item class
+    Item item = new Item();
+
+    // Method to add an item
+    public void AddItem()
+    {
+        // Add item with specified description and quantity
+        item.AddItem(itemDescription, quantity);
+    }
+}

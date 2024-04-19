@@ -1,0 +1,234 @@
+﻿@page "/order"
+@using Project.Components.Pages.Codes
+
+
+<style>
+
+    body {
+        font-family: Arial, sans-serif;
+        background-color: lightblue;
+        margin: 0;
+        padding: 0;
+        font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    }
+
+    .container {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: lightyellow;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+        text-align: center;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+    }
+
+    label {
+        margin-bottom: 5px;
+    }
+
+    select,
+    input[type="number"],
+    button {
+        margin-bottom: 15px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-sizing: border-box;
+    }
+
+    button {
+        background-color: #907bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: #0056b3;
+    }
+
+</style>
+
+
+<div class="container">
+    <h1>Order</h1>
+    <form id="orderForm" @onsubmit="SubmitOrder">
+
+        <label for="item-type">Select Item Type:</label>
+        <select id="item-type" name="item-type" @bind="type">
+            @{
+                var uniqueTypes = item.Items.Select(i => i.Type).Distinct();
+                <option value="all">All</option>
+                foreach (var type in uniqueTypes)
+                {
+                    <option value="@type">@type</option>
+                }
+            }
+        </select>
+
+
+        <label for="item">Select Item:</label>
+        <select id="item" name="item" @bind="itemDescription">
+            @{
+                var sortedItems = item.Items.OrderBy(i => i.Description);
+                <option value="">--Select--</option>
+                if (type == "all")
+                {
+                    foreach (var item in sortedItems)
+                    {
+                        <option value="@item.Description">@item.Description</option>
+                    }
+                }
+
+                else
+                {
+                    foreach (var item in sortedItems)
+                    {
+                        if (item.Type == type)
+                        {
+                            <option value="@item.Description">@item.Description</option>
+                        }
+                    }
+                }
+            }
+        </select>
+
+        <div>
+            @if (itemDescription != "")
+            {
+                foreach (var item in item.Items)
+                {
+                    if (item.Description == itemDescription)
+                    {
+                        <p>Available Quantity: @item.Quantity</p>
+                        availableQuantity = item.Quantity;
+                    }
+                }
+            }
+        </div>
+
+        <label for="quantity">Quantity:</label>
+        <input type="number" id="quantity" name="quantity" min="1" max="@availableQuantity" required @bind="quantity">
+
+        <button type="submit">Add to Order</button>
+    </form>
+</div>
+
+@if (Orders.Count > 0)
+{
+    <div class="container">
+        <h1>Bill</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th style="padding-right: 150px;">Description</th>
+                    <th style="padding-right: 150px;">Quantity</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in Orders)
+                {
+                    <tr>
+                        <td>@order.Description</td>
+                        <td>@order.Quantity</td>
+                        <td>@order.Price</td>
+                    </tr>
+                }
+
+                <tr>
+                    <td colspan="2" style="text-align: right;">Total:</td>
+                    <td>@Orders.Sum(o => o.Price)</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <button @onclick="PrintBill" style="margin-right:125px">Print Bill</button>
+                <button @onclick="CancelOrder">Cancel</button>
+            </tfoot>
+        </table>
+    </div>
+}
+
+
+
+@code {
+    // Folder path for saving bills
+    static string billsFolderPath = @"C:\bills\";
+
+    // Fields
+    string type = "";
+    string itemDescription;
+    int quantity = 1;
+    int availableQuantity;
+
+    // List to hold orders
+    List<Item> Orders = new List<Item>();
+
+    // Instance of Item class
+    Item item = new Item();
+
+    // Method to submit an order
+    public void SubmitOrder()
+    {
+        // Order item and add it to orders list
+        Item order = item.OrderItem(itemDescription, quantity);
+        Orders.Add(order);
+    }
+
+    // Method to add an item
+    public void AddItem()
+    {
+        // Add item
+        item.AddItem(itemDescription, quantity);
+    }
+
+    // Method to print bill
+    public void PrintBill()
+    {
+        // Generate unique bill number
+        int billNumber = item.GenerateUniqueBillNumber();
+        // Create file name with bill number and current date time
+        string fileName = $"{billNumber}_{DateTime.Now:yyyyMMddHHmmss}.txt";
+        // Combine file path
+        string filePath = Path.Combine(billsFolderPath, fileName);
+
+        // Write bill details to file
+        using (StreamWriter writer = File.CreateText(filePath))
+        {
+            writer.WriteLine($"Bill Number: {billNumber}");
+            writer.WriteLine($"Date: {DateTime.Now:yyyyMMddHHmmss}");
+            writer.WriteLine("Items:");
+
+            // Write each item in orders list to file
+            foreach (var item in Orders)
+            {
+                writer.WriteLine($"{item.Description}: {item.Price}");
+            }
+
+            // Write total amount
+            writer.WriteLine($"Total Amount: {Orders.Sum(o => o.Price)}");
+        }
+
+        // Clear orders list
+        Orders.Clear();
+    }
+
+    // Method to cancel order
+    public void CancelOrder()
+    {
+        // Clear orders list
+        Orders.Clear();
+        // Add item
+        item.AddItem(itemDescription, quantity);
+    }
+}
+
